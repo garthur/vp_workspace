@@ -29,19 +29,6 @@ def writeFile(filename, contents, mode="wt"):
 
 def replaceFunctionSymbolsWithUnicode(s):
 	mulAndPow = s.replace("**","^").replace("*",u"\u2219")
-	#if("/" in s):
-	#	andDiv = mulAndPow.split("/")
-	#	targetWidth = len(andDiv[0]) + 2
-	#	for i in xrange(1, len(andDiv)):
-	#		while len(andDiv[i]) < targetWidth):
-	#			andDiv[i] = (andDiv[i] + " ")
-	#			andDiv[i] = (" " + andDiv[i])
-	#	divisorBar = "\n"+((u"\u2212")*len(andDiv[0]))+"\n"
-	#	while(len(andDiv[0]) < targetWidth):
-	#		andDiv[0] = andDiv[0] + " "
-	#		andDiv[0] = " " + andDiv[0]
-	#	mulAndPowAndDiv = divisorBar.join(andDiv)
-	#else:
 	mulAndPowAndDiv = mulAndPow.replace("pi",u"\u03C0").replace("sqrt",u"\u221A")
 	return mulAndPowAndDiv
 
@@ -676,6 +663,3 @@ variable\
 			self.drawOperationText()
 		else:
 			self.drawHelp()
-
-demo = VPWorkspaceWindow()
-demo.run()

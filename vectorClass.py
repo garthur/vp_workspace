@@ -1,8 +1,6 @@
 # Graham Arthur
 # Vector Class
 
-# for implementation in 15-112 term project
-
 import copy
 import sympy as sym
 from sympy import cos, sin, tan, cot, sec, csc, pi
@@ -115,7 +113,7 @@ class Vector(object):
 		if (not isinstance(other, Vector)):
 			newElements = copy.deepcopy(self.elements)
 			for i in xrange(len(newElements)):
-				newElements[i] = newElements[i]*other
+				newElements[i] = newElements[i]*(other)
 				newElements[i] = sym.simplify(newElements[i])
 			return Vector(newElements)
 		elif (isinstance(other, Vector)):
@@ -153,7 +151,7 @@ class Vector(object):
 		if(not isinstance(other, Vector)):
 			newElements = copy.deepcopy(self.elements)
 			for i in xrange(len(newElements)):
-				newElements[i] = newElements[i]/other
+				newElements[i] = newElements[i]/(other)
 				newElements[i] = sym.simplify(newElements[i])
 			return Vector(newElements)
 		elif(isinstance(other, Vector)):
@@ -168,7 +166,7 @@ class Vector(object):
 
 	def __rdiv__(self, other):
 		if(not isinstance(other, Vector)):
-			return self/other
+			return (self)/(other)
 		elif(isinstance(other, Vector)):
 			# taking a cross product is not commutative, so it is a different operation
 			# the other way around

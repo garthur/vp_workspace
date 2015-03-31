@@ -1,0 +1,19 @@
+VP_Workspace Settings
+
+Do not edit the names of the lines starting with "//" in this file, doing so will result in a read error.
+
+SETTINGS
+
+Margin Size
+//margin 60
+
+Aspect Ratio
+//wRatio 16
+//hRatio 9
+
+Color Theme
+A TKinter color chart can be found in the assets folder.
+//color1 lightBlue
+//color2 azure
+
+

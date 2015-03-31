@@ -1,0 +1,20 @@
+Press 'P' to create a polynomial.
+
+This workspace supports trigonometric functions, as well as natural logs.
+
+When creating a polynomial, please use the following symbols:
+	(**): power, (*): multiply, (/): divide
+	(+):add, (-):subtract, (x,y,z):variables
+
+Workspace Commands:
+  (*): multiplication
+  (/): division
+  (+): addition
+  (-): subtraction
+
+Menu Commands:
+  (Gradient): returns a vector whose elements are the partial derivatives of the function
+  (Derivative): returns the derivative of a function with respect to a variable
+  (Graph): graphs a plot of the function
+  (Evaluate): returns the function, evaluated at the given values
+  (Information): displays some basic information about the polynomial

@@ -1,0 +1,14 @@
+Press 'V' to create a vector.
+
+This workspace supports vectors that contain polynomials. See polynomial help for more info.
+
+Workspace Commands:
+  (*): vector multiplication, dot product if vectors selected
+  (/): vector division, cross product if multiple vectors
+  (+): vector addition
+  (-): vector subtraction
+
+Menu Commands:
+  (Unit Vector): returns a vector of length 1 in the same direction
+  (Evaluate): returns a vector whose elements are evaluated at certain values
+  (Information): displays some basic information about the vector

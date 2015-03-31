@@ -1,2 +1,0 @@
-WorkspaceObject(386,192,sin(x + y)*cos(y)**2)
-WorkspaceObject(385,258,Vector(cos(y)**2*cos(x + y), -2*sin(y)*sin(x + y)*cos(y) + cos(y)**2*cos(x + y)))

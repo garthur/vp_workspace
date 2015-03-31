@@ -1,3 +1,0 @@
-WorkspaceObject(314,343,Vector(x, 21*y**x, 3))
-WorkspaceObject(465,245,cos(x + y))
-WorkspaceObject(465,265,-sin(x + y))

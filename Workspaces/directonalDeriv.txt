@@ -1,6 +1,0 @@
-WorkspaceObject(303,247,3*x**y + 21*z)
-WorkspaceObject(301,303,Vector(3*x**y*y/x, 3*x**y*log(x), 21))
-WorkspaceObject(613,248,Vector(4, 6, 12))
-WorkspaceObject(613,268,Vector(2/7, 3/7, 6/7))
-WorkspaceObject(453,129,3*(3*x*(x**y*log(x) + 14) + 2*x**y*y)/(7*x))
-WorkspaceObject(454,215,132/7)

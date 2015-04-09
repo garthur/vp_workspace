@@ -1,6 +1,8 @@
 # Graham Arthur
 # VP Workspace
 
+# improve documentation
+
 import os
 import sys
 import copy
@@ -9,7 +11,8 @@ import threading
 
 # modules for function eval
 import sympy as sym
-## some special functions need to be imported for eval purposes
+from sympy.parsing.sympy_parser import parse_expr
+# some special functions need to be imported for eval purposes
 from sympy import cos, acos, sin, asin, tan, atan, cot, sec, csc, pi, ln, log, sqrt
 
 # self-written modules for manipulations
@@ -201,7 +204,7 @@ class VectorCreationDialog(object):
 		# .get() returns strings, so evaluate the strings and use that to create
 		# the new vector
 		try:
-			elementsList = [sym.simplify(eval(item)) for item in entryGetList if item != ""]
+			elementsList = [parse_expr(item) for item in entryGetList if item != ""]
 			vectorCreated = Vector(elementsList)
 			self.Workspace.addToWorkspace(WorkspaceObject(self.posX,self.posY,
 				vectorCreated))
@@ -227,8 +230,9 @@ class PolynomialCreationDialog(object):
 		# attempt to parse the text using sympy, if it does not
 		# work, display error dialog
 		try:
+			trueFn = parse_expr(fnString, evaluate=True)
 			self.Workspace.addToWorkspace(WorkspaceObject(self.posX, 
-				self.posY, sym.simplify(eval(fnString))))
+				self.posY, trueFn))
 			self.top.destroy()
 		except: tkMessageBox.showerror("Creation Error", 
 			"The app could not parse this text. Please check the help screen.")
@@ -435,6 +439,11 @@ class VPWorkspaceWindow(EventBasedAnimationClass):
 		# initialize right-click popup menu
 		self.initPopupMenu()
 
+	def runClassTests(self):
+		# placeholder until I write proper tests for the vector
+		# and polynomial classes, will be called on runtime
+		pass
+
 	def restart(self):
 		self.initAnimation()
 
@@ -535,10 +544,28 @@ class VPWorkspaceWindow(EventBasedAnimationClass):
 		# for use in saving a workspace as a .txt file
 		return "\n".join([repr(item) for item in self.workspace.objects])
 
+	def getVectorFromReprString(self, reprString):
+		essentialString = reprString[reprString.find("(")+1:len(reprString)-1]
+		essentialList = essentialString.split(",")
+		trueFnList = [parse_expr(fn) for fn in essentialList]
+		return Vector(trueFnList)
+
+	def getObjectFromReprString(self, reprString):
+		essentialString = reprString[reprString.find("(")+1:len(reprString)-1]
+		essentialList = essentialString.split(",", 2)
+		posX, posY = int(essentialList[0]), int(essentialList[1])
+		if (not "Vector" in essentialList[2]):
+			innerItem = parse_expr(essentialList[2])
+		else:
+			innerItem = self.getVectorFromReprString(essentialList[2])
+		return WorkspaceObject(posX,posY,innerItem)
+
 	def getWorkspaceFromReprString(self, reprString):
 		# re-evaluates each string into a workspace object
 		# for use in opening a workspace from a .txt file
-		return Workspace([eval(item) for item in reprString.splitlines()])
+		newObjects = [self.getObjectFromReprString(item) 
+			for item in reprString.splitlines()]
+		return Workspace(newObjects)
 
 	def saveWorkspace(self):
 		# turns workspace into a string, gets path from tkFileDialog
@@ -560,7 +587,7 @@ class VPWorkspaceWindow(EventBasedAnimationClass):
 			os.makedirs("Saved Workspaces")
 			print "The 'Saved Workspaces' folder was not found."
 		# read from file and set as current workspace
-		else:
+		elif(path != ""):
 			reprString = readFile(path)
 			self.workspace = self.getWorkspaceFromReprString(reprString)
 			print path

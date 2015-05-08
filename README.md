@@ -6,5 +6,7 @@ The VP Workspace seeks to provide a system for easy vector and derivative operat
 Python Modules
 
 Numpy - Installation Info: http://www.numpy.org/
+
 Sympy - Installation Info: https://github.com/sympy/sympy
+
 matplotlib - Installation Info: http://matplotlib.org/

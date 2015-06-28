@@ -6,6 +6,7 @@
 import math
 import copy
 import numpy as np
+import sympy as sym
 from sympy import cos, sin, tan, cot, sec, csc, pi
 from sympy.mpmath import *
 
@@ -70,7 +71,9 @@ class Matrix(object):
 	def __rmul__(self, other):
 		# not the same as mul
 		if (isinstance(other, Matrix)):
-		elif (isinstance(other, Vector)):
+			pass
+		elif(isinstance(other, Vector)):
+			pass
 		else:
 			return self*other
 

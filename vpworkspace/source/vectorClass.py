@@ -5,6 +5,7 @@ import copy
 import sympy as sym
 from sympy import cos, sin, tan, cot, sec, csc, pi
 from sympy.mpmath import *
+from sympy.parsing.sympy_parser import parse_expr
 
 [x,y,z] = sym.symbols('x y z')
 
@@ -17,6 +18,7 @@ class Vector(object):
 
 	@staticmethod
 	def flatten(someList):
+		# some cleanup to be done here
 		flat = []
 		for item in someList:
 			if(type(item)!=list and type(item)!=tuple):
@@ -87,7 +89,7 @@ class Vector(object):
 		if(isinstance(other, Vector) and Vector.inSameSpace(self, other)):
 			newElements = copy.deepcopy(self.elements)
 			for i in xrange(len(newElements)):
-				newElements[i] = newElemts[i] + other.elements[i]
+				newElements[i] = newElements[i] + other.elements[i]
 				newElements[i] = sym.simplify(newElements[i])
 			return Vector(newElements)
 		else:
@@ -138,13 +140,13 @@ class Vector(object):
 
 	@staticmethod
 	def angleBetween(v1, v2):
-		# uses definition of cross product to find the angle between two
+		# uses definition of dot product to find the angle between two
 		# vectors
-		crossProduct = v1*v2
+		dotProd = v1*v2
 		len1 = v1.findLength()
 		len2 = v2.findLength()
 		# perhaps implement degree/radian versions of the angle?
-		angle = sym.acos(crossProduct/(len1*len2))
+		angle = sym.acos(dotProd/(len1*len2))
 		return angle
 
 	def __div__(self, other):
@@ -155,6 +157,8 @@ class Vector(object):
 				newElements[i] = sym.simplify(newElements[i])
 			return Vector(newElements)
 		elif(isinstance(other, Vector)):
+			# cross product operation without matrix
+			# for simplification, only available for R3 vectors
 			assert(self.inSpace() == 3)
 			assert(other.inSpace() == 3)
 			elems1 = self.elements

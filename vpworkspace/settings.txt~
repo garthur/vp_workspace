@@ -1,0 +1,23 @@
+VP_Workspace Settings
+
+Do not edit the names of the lines starting with "//" in this file, doing so will result in a read error.
+
+SETTINGS
+
+Margin Size
+//margin 65
+
+Aspect Ratio
+//wRatio 16
+//hRatio 9
+
+Color Theme
+A TKinter color chart can be found in the main directory.
+//color1 lightBlue
+//color2 azure
+
+Force Save on Quit
+This will make each workspace be saved on quit. This variable takes values 0 or 1.
+//forceSave 1
+
+

@@ -1,39 +1,22 @@
-# Graham Arthur
-# VP Workspace
+# add in start anim when there is time
+# try to implement a settings file
 
-# improve documentation
-# write test files
-
-import os
-import sys
 import copy
 import time
-import datetime
 import threading
-
-# adding modules to path for imports we wont actually use it in this 
-# file, but just in case files from adjacent directories are necessary
-TOPDIR_PATH = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(TOPDIR_PATH)
-
-# import modules for function eval
+import os
 import sympy as sym
-from sympy.parsing.sympy_parser import parse_expr
 # some special functions need to be imported for eval purposes
-# maybe this can be handled in a later function??
 from sympy import cos, acos, sin, asin, tan, atan, cot, sec, csc, pi, ln, log, sqrt
 
-# import self-written modules for manipulations
-from source.vectorClass import Vector
-from source.polynomialClass import PolynomialMultiVar
-
-# import test module for running tests on startup
-import tests
+from vectorClass import Vector
+#from matrixClass import Matrix
+from polynomialClass import PolynomialMultiVar
 
 # import graphics modules
+from eventBasedAnimationClass import EventBasedAnimationClass
 from Tkinter import *
 import tkMessageBox, tkFileDialog
-from graphics.eventBasedAnimationClass import EventBasedAnimationClass
 
 x, y, z = sym.symbols('x y z')
 
@@ -64,7 +47,8 @@ class WorkspaceObject(object):
 		self.height = 10*(len(str(containedObject).splitlines()))
 		self.width = (len(str(containedObject))*7)/2.0 
 
-	# these methods deal with how the object is displayed on screen
+	# all methods between this and the next comment 
+	# deal with how the object is displayed on screen
 	def draw(self, canvas):
 		drawText = replaceFunctionSymbolsWithUnicode(str(self.object))
 		canvas.create_text(self.posX, self.posY, text=drawText,
@@ -100,37 +84,34 @@ class Workspace(object):
 		self.objects = objects
 		self.workingObjects = []
 		self.operationText = ""
-		self.activeItem = None
 
 	def drawWorkspace(self, canvas, x0, y0, x1, y1, mouseX, mouseY):
 		canvas.create_rectangle(x0, y0, x1, y1, fill="white", outline="white")
 		for item in self.objects:
 			try: 
 				item.draw(canvas)
+				if (item.isSelected(mouseX,mouseY) and 
+							item not in self.workingObjects):
+					item.highlight(canvas)
 			except:
-				pass
+				canvas.create_text(x0+10, y1+10, text=str(item), fill='red')
 		for i in xrange(len(self.workingObjects)):
 				self.workingObjects[i].highlight(canvas, 'blue')
 				self.workingObjects[i].labelOrder(canvas, i+1)
-		if (self.activeItem != None):
-			self.activeItem.highlight(canvas)
 
-	def checkForActive(self, posX, posY):
+	def objectSelected(self, posX, posY):
 		for item in self.objects:
-			if item.isSelected(posX, posY):
-				self.activeItem = item
-				return
-		self.activeItem = None
-
-	def objectSelected(self):
-		return self.activeItem != None
+			if (item.isSelected(posX,posY)):
+				return True
+		return False
 
 	def moveObject(self, newX, newY):
-		if (self.activeItem != None):
-			self.activeItem.move(newX, newY)
+		for item in self.objects:
+			if(item.isSelected(newX,newY)):
+				item.move(newX, newY)
 
 	def selectObject(self, posX, posY):
-		if(not self.objectSelected()):
+		if(not self.objectSelected(posX,posY)):
 			self.workingObjects = []
 			self.operationText = ""
 		else:
@@ -182,7 +163,8 @@ class Workspace(object):
 				primeItem = sym.simplify(primeItem)
 			self.addToWorkspace(WorkspaceObject(returnX, returnY, primeItem))
 		except:
-			raise Exception("That operation could not be performed.")
+			tkMessageBox.showerror("Operation Error",
+				"This workspace does not support that operation.")
 
 ##############
 #DIALOG BOXES#
@@ -213,9 +195,9 @@ class VectorCreationDialog(object):
 		entryGetList = [self.e1.get(), self.e2.get(), self.e3.get(), 
 								self.e4.get(), self.e5.get()]
 		# .get() returns strings, so evaluate the strings and use that to create
-		# the new vector
+		# the vector
 		try:
-			elementsList = [parse_expr(item) for item in entryGetList if item != ""]
+			elementsList = [sym.simplify(eval(item)) for item in entryGetList if item != ""]
 			vectorCreated = Vector(elementsList)
 			self.Workspace.addToWorkspace(WorkspaceObject(self.posX,self.posY,
 				vectorCreated))
@@ -241,9 +223,8 @@ class PolynomialCreationDialog(object):
 		# attempt to parse the text using sympy, if it does not
 		# work, display error dialog
 		try:
-			trueFn = parse_expr(fnString, evaluate=True)
 			self.Workspace.addToWorkspace(WorkspaceObject(self.posX, 
-				self.posY, trueFn))
+				self.posY, sym.simplify(eval(fnString))))
 			self.top.destroy()
 		except: tkMessageBox.showerror("Creation Error", 
 			"The app could not parse this text. Please check the help screen.")
@@ -310,47 +291,23 @@ class EvaluationDialog(object):
 class VPWorkspaceWindow(EventBasedAnimationClass):
 
 	def __init__(self):
-		self.checkFilesHandler()
-		self.declareSettings()
-		canvasWidth, canvasHeight = self.wRatio*self.margin, self.hRatio*self.margin
+		margin = 50
+		canvasWidth, canvasHeight = 16*margin, 9*margin
 		super(VPWorkspaceWindow, self).__init__(canvasWidth, canvasHeight)
+		self.margin = margin
 		self.canvasWidth, self.canvasHeight = canvasWidth, canvasHeight
 
-	def checkFilesHandler(self):
-		# this function just checks all file paths and displays
-		# an error popup if something is wrong with the installation
-		try:
-			tests.pathExistsTest.checkAllFiles()
-		except:
-			tkMessageBox.showerror("Installation Error",
-				"One or more paths is not present.\n\
-				Please go to https://github.com/garthur/vp_workspace\
-				to redownload the repository")
-			raise Exception("Installation Error")
-			self.root.quit()
-
-	def declareSettings(self):
-		settingsText = readFile("settings.txt")
-		for line in settingsText.splitlines():
-			if (line.startswith("//")):
-				settingVal = line.split(" ")
-				currentSetting = settingVal[0].strip("//")
-				currentVal = settingVal[1]
-				try:
-					setattr(self, currentSetting, int(currentVal))
-				except:
-					setattr(self, currentSetting, currentVal)
-
-
-	#########################
-	#INITIALIZATION HANDLERS#
-	#########################
-
 	def initAnimation(self):
-		# configure the root window
-		self.root.resizable(width=False, height=False)
-		self.root.protocol("WM_DELETE_WINDOW", self.savePopupAndQuit)
+		# create a workspace
+		self.workspace = Workspace()
+		self.mode = "start"
+		self.timerDelay = 200
+		# initialize variables that determine whether or not
+		# help screens will be displayed
+		self.helpTypes = ["Help", "vectorHelp", "polyHelp", "matrixHelp"]
+		self.helpIndex = 0
 		# bind events to appropriate functions
+		self.root.bind("<Configure>", lambda event: self.sizeChanged(event))
 		self.root.bind("<Key>", lambda event: self.onKeyPressed(event))
 		self.root.bind("<Button-1>", lambda event: self.onMousePressed(event))
 		self.root.bind("<Button-3>", lambda event: self.onRightMouse(event))
@@ -361,23 +318,10 @@ class VPWorkspaceWindow(EventBasedAnimationClass):
 		self.root.bind("<B1-Motion>", lambda event: self.onLeftDrag(event))
 		# initialize mouse location
 		self.mouseX, self.mouseY = 0, self.margin
-		# create a workspace
-		self.workspace = Workspace()
-		self.mode = "start"
-		self.timerDelay = 200
-		# initialize variables that determine whether or not
-		# help screens will be displayed
-		self.helpTypes = ["Help", "vectorHelp", "polyHelp", "matrixHelp"]
-		self.helpIndex = 0
-		# initialize variable to help with file I/O
-		self.recentPath = None
+		# initialize theme colors
+		self.colorTheme = ["lightBlue", "azure"]
 		# initialize right-click popup menu
 		self.initPopupMenu()
-
-	def runClassTests(self):
-		# runs tests on the vector and polynomial classes to make
-		# sure that there are no issues in the class
-		pass
 
 	def restart(self):
 		self.initAnimation()
@@ -405,10 +349,14 @@ class VPWorkspaceWindow(EventBasedAnimationClass):
 	def updatePopupMenu(self):
 		# clear all leftover entries from the menu
 		self.popupMenu.delete(0, END)
-		activeItem = self.workspace.activeItem
+		activeItem = None
 		offset = 20
 		# find the item that is currently being hovered over, 
 		# and create the menu based on what type of object it is
+		for item in self.workspace.objects:
+			if(item.isSelected(self.mouseX,self.mouseY)):
+				activeItem = item
+				break
 		if (activeItem != None):
 			# bind commands to entries on the popup menu 
 			def evaluate(): self.evaluateObject(activeItem)
@@ -463,85 +411,50 @@ class VPWorkspaceWindow(EventBasedAnimationClass):
 		self.popupMenu.add_command(label="Exit",
 			command= lambda: self.savePopupAndQuit())
 
-	##########
-	#FILE I/O#
-	##########
+############# IN PROGRESS ##############
 
 	def savePopupAndQuit(self):
-		# checks if the user wants to save before quitting the app
 		save = tkMessageBox.askyesno("Quit", "Do you want to save and quit?")
 		if (save):
-			self.saveWorkspace(True)
-		self.root.destroy()
+			self.saveWorkspace(self.makeWorkspaceReprString())
+		self.root.quit()
+
+############# IN PROGRESS ##############
 
 	def makeWorkspaceReprString(self):
 		# represents every item in the workspace
 		# for use in saving a workspace as a .txt file
 		return "\n".join([repr(item) for item in self.workspace.objects])
 
-	def getVectorFromReprString(self, reprString):
-		essentialString = reprString[reprString.find("(")+1:len(reprString)-1]
-		essentialList = essentialString.split(",")
-		trueFnList = [parse_expr(fn) for fn in essentialList]
-		return Vector(trueFnList)
-
-	def getObjectFromReprString(self, reprString):
-		essentialString = reprString[reprString.find("(")+1:len(reprString)-1]
-		essentialList = essentialString.split(",", 2)
-		posX, posY = int(essentialList[0]), int(essentialList[1])
-		if (not "Vector" in essentialList[2]):
-			innerItem = parse_expr(essentialList[2])
-		else:
-			innerItem = self.getVectorFromReprString(essentialList[2])
-		return WorkspaceObject(posX,posY,innerItem)
-
 	def getWorkspaceFromReprString(self, reprString):
 		# re-evaluates each string into a workspace object
 		# for use in opening a workspace from a .txt file
-		newObjects = [self.getObjectFromReprString(item) 
-			for item in reprString.splitlines()]
-		return Workspace(newObjects)
+		return Workspace([eval(item) for item in reprString.splitlines()])
 
-# the two functions below can probably be combined
-
-	def saveWorkspace(self, quitInProgress = False):
+	def saveWorkspace(self):
 		# turns workspace into a string, gets path from tkFileDialog
 		contents = self.makeWorkspaceReprString()
-		# make sure we are not continually saving empty
-		# workspaces at different times
-		if (contents == ""):
-			print "This workspace is empty. Saving terminated."
-			return
-		# create a folder if none exists yet
-		if (not os.path.exists("Saved Workspaces")):
-			os.makedirs("Saved Workspaces")
-		# now proceed to save
-		if(quitInProgress and self.recentPath != None):
-			filename = self.recentPath
-		else:
-			filename = tkFileDialog.asksaveasfilename(initialdir="Saved Workspaces", 
-				defaultextension=".txt")
-			self.recentPath = filename
+		path = tkFileDialog.asksaveasfilename(initialdir="Workspaces", 
+			defaultextension=".txt")
+		# create path if none exists yet
+		if (not os.path.exists("Workspaces")):
+			os.makedirs("Workspaces")
 		# write contents to file
-		writeFile(filename, contents)
-		print "Written to:" + filename
+		writeFile(path, contents)
+		print "Saving...   " + path
 
 	def openWorkspace(self):
 		# get path from tkFileDialog
-		path = tkFileDialog.askopenfilename(initialdir="Saved Workspaces")
-		print "Reading from:",
-		if (not os.path.exists("Saved Workspaces")):
-			os.makedirs("Saved Workspaces")
-			print "The 'Saved Workspaces' folder was not found."
+		path = tkFileDialog.askopenfilename(initialdir="Workspaces")
+		print "Opening...   ",
+		if (not os.path.exists("Workspaces")):
+			os.makedirs("Workspaces")
+			print "The 'Workspaces' folder was not found."
 		# read from file and set as current workspace
-		elif(path != ""):
+		else:
 			reprString = readFile(path)
 			self.workspace = self.getWorkspaceFromReprString(reprString)
 			print path
-
-	###########################
-	#WORKSPACE OBJECT HANDLERS#
-	###########################
 
 	def showInformationString(self, item):
 		# this method displays a short information string at the bottom of
@@ -576,41 +489,37 @@ class VPWorkspaceWindow(EventBasedAnimationClass):
 	def inTitleBar(self):
 		return (not self.inWorkspace())
 
-	def handleOperation(self, operation):
-		# a wrapper function for workspace operations
-		# displays an error message if an operation fails
-		try:
-			self.workspace.performOperation(operation, 
-				self.mouseX, self.mouseY)
-		except:
-			tkMessageBox.showerror("Operation Error",
-				"This workspace does not support that operation.")
-
-	################
-	#EVENT HANDLERS#
-	################
-
 	def onMouseMotion(self, event):
 		# simply update the mouse position
 		self.mouseX, self.mouseY = event.x, event.y
-		if (self.mode == "working"):
-			self.workspace.checkForActive(self.mouseX, self.mouseY)
+
+############# IN PROGRESS ##############
+
+	def sizeChanged(self, event):
+		self.canvasWidth = event.width - 4
+		self.canvasHeight = event.height - 4
+		self.margin = self.canvasHeight/9.0
+		self.redrawAll()
+
+############# IN PROGRESS ##############
 
 	def onMousePressed(self, event):
 		# first unpost the right click menu, if it is posted
-		# then tries to select 
+		# then 
 		self.popupMenu.unpost()
 		if(self.inWorkspace() and self.mode == "working"):
 			self.workspace.selectObject(self.mouseX, self.mouseY)
 
 	def onLeftDrag(self, event):
 		self.mouseX, self.mouseY = event.x, event.y
-		if(self.inWorkspace() and self.workspace.objectSelected()):
+		if(self.inWorkspace() and self.workspace.objectSelected(self.mouseX,
+			self.mouseY)):
 			self.workspace.moveObject(self.mouseX, self.mouseY)
 
 	def onShiftKeyPressed(self, event):
 		if(event.char in "*+"):
-			self.handleOperation(event.char)
+			self.workspace.performOperation(event.char, self.mouseX,
+				self.mouseY)
 
 	def onCtrlKeyPressed(self, event):
 		if (event.keysym == "s"):
@@ -625,16 +534,18 @@ class VPWorkspaceWindow(EventBasedAnimationClass):
 				pass
 			elif(event.keysym == "Return"):
 				self.workspace.clearWorkspace()
+				self.restart()
 			elif(event.keysym == "BackSpace"):
-				self.workspace.deleteLastObject()
+				self.mode = "start"
 			elif(event.char in "1234567890"):
 				if(self.inWorkspace() and not 
-					self.workspace.objectSelected()):
+					self.workspace.objectSelected(self.mouseX, self.mouseY)):
 					self.workspace.addToWorkspace(WorkspaceObject(self.mouseX, 
 						self.mouseY, eval(event.char)))
 			elif(event.char in "/-"):
 				if(self.inWorkspace()):
-					self.handleOperation(event.char)
+					self.workspace.performOperation(event.char, self.mouseX,
+						self.mouseY)
 			elif(event.char == "v"):
 				self.vectorCreation()
 			elif(event.char == "p"):
@@ -652,7 +563,7 @@ class VPWorkspaceWindow(EventBasedAnimationClass):
 			elif(event.char == "h"): self.mode = "working"
 		elif(self.mode == "start"):
 			if(event.keysym == "Return"):
-				self.activateStartScreen()
+				self.activateStartScreen2()
 				
 	def onRightMouse(self, event):
 		self.popupMenu.unpost()
@@ -661,27 +572,19 @@ class VPWorkspaceWindow(EventBasedAnimationClass):
 		finally:
 			self.popupMenu.grab_release()
 
-	################
-	#DRAW FUNCTIONS#
-	################
-
 	def drawGradient(self, orientation, x0=0, y0=0, x1=0, y1=0):
-		# set up bounds for the gradient to be drawn
 		limit = x1 if (orientation == "vert") else y1
 		loopLowBound = x0 if (orientation == "vert") else y0
 		distanceToTravel = (x1-x0) if (orientation == "vert") else (y1-y0)
-		# get rgb from tkinter colors
-		(r1,g1,b1) = self.root.winfo_rgb(self.color1)
-		(r2,g2,b2) = self.root.winfo_rgb(self.color2)
+		(r1,g1,b1) = self.root.winfo_rgb(self.colorTheme[0])
+		(r2,g2,b2) = self.root.winfo_rgb(self.colorTheme[1])
 		rRatio = float(r2-r1)/distanceToTravel
 		gRatio = float(g2-g1)/distanceToTravel
 		bRatio = float(b2-b1)/distanceToTravel
-		# increment rgb as the x or y value increases
 		for i in xrange(loopLowBound, limit+1):
 			nr = int(r1 + (rRatio*i))
 			ng = int(g1 + (gRatio*i))
 			nb = int(b1 + (bRatio*i))
-			# create hex color and draw the lines
 			color = "#%4.4x%4.4x%4.4x" % (nr,ng,nb)
 			if (orientation == "horiz"):
 				self.canvas.create_line(x0,i,x1,i, fill=color)
@@ -698,9 +601,13 @@ class VPWorkspaceWindow(EventBasedAnimationClass):
 
 	def drawTitle(self):
 		title = "VP Workspace"
+		fontScale = 20
+		titleSize = len(title)*fontScale
 		offset = 5
 		self.canvas.create_text(offset, self.margin/2.0, anchor="w", text=title,
 			font="Helvetica 20 bold")
+
+#### IN PROGRESS ####
 
 	def drawLoadingBar(self, timeElapsed):
 		x0 = self.canvasWidth/3.0
@@ -710,22 +617,24 @@ class VPWorkspaceWindow(EventBasedAnimationClass):
 			outline="white")
 
 	def activateStartScreen(self):
-		timeToLoad = 2.5
+		timeToLoad = 3
 		timeIncrement = 0.001
 		timeRatio = 0
-		timingThread = threading.Thread(target = tests.vectorClassTest.runFullTests)
-		timingThread.start()
-		while (timingThread.is_alive()):
+		def timer(): time.sleep(timeToLoad)
+		thread = threading.Thread(target = timer)
+		thread.start()
+		while (thread.is_alive()):
 			self.root.update()
+			self.drawLoadingBar(timeRatio)
 			time.sleep(timeIncrement)
 			timeRatio += (timeIncrement/timeToLoad)*10
 			if (timeRatio <= 1):
 				self.drawLoadingBar(timeRatio)
-		timeRatio = 0
 		self.mode = "working"
 
+#### IN PROGRESS ####
+
 	def drawStaticStartScreen(self):
-		# draws a static start screen with 
 		self.drawGradient("horiz", 0, 0, self.canvasWidth, self.canvasHeight)
 		self.canvas.create_text(self.canvasWidth/2.0, self.canvasHeight/2.0 - 30,
 			text="VP Workspace", font="Arial 20 bold")
@@ -734,12 +643,22 @@ class VPWorkspaceWindow(EventBasedAnimationClass):
 		offset = 60
 		self.canvas.create_rectangle(0, self.margin, self.canvasWidth,
 			self.canvasHeight-self.margin, fill="white")
-		helpText = readFile("assets"+os.sep+"genHelp.txt")
+		helpText = "Press 'v' to create a vector and 'p' for a polynomial.\
+\n\
+\nClick on an object to select it. Selected items are highlighted\
+\n  in blue with their queue position in the top right.\
+\n\
+\nRight-clicking will display a popup menu specific to the item selected.\
+\nFor more info on the commands in this popup menu, please see the specialized\
+\n  help sections as described below."
+		controlsText = "Use the right and left buttons to access other help pages."
 		if (self.mode == "Help"):
 			self.canvas.create_text(self.canvasWidth/2.0, self.margin, 
 				anchor="n", text="General Help", font="Arial 15 bold")
 			self.canvas.create_text(self.margin, self.margin+offset, 
 				anchor="nw", text=helpText)
+			self.canvas.create_text(self.margin, self.canvasHeight/1.5,
+				anchor="nw", text=controlsText)
 		elif(self.mode == "vectorHelp"):
 			self.vectorHelp()
 		elif(self.mode == "polyHelp"):
@@ -749,19 +668,55 @@ class VPWorkspaceWindow(EventBasedAnimationClass):
 		offset1 = 5
 		self.canvas.create_text(self.canvasWidth/2.0, self.margin+offset1,
 			anchor="n", text="Vector Help", font="Arial 15 bold")
-		vectorHelpText = readFile("assets"+os.sep+"vectorHelp.txt")
+		generalHelpText = "Press 'V' to create a vector.\
+\nThis workspace supports vectors that contain polynomials. See polynomial help\
+ for more info."
+		commandText = "Workspace Commands:\
+\n  (*): vector multiplication, dot product if multiple vectors selected\
+\n  (/): vector division, cross product if multiple vectors\
+\n  (+): vector addition\
+\n  (-): vector subtraction"
+		menuDescription = "Menu Commands:\
+\n  (Unit Vector): returns a vector of length 1 in the same direction\
+\n  (Evaluate): returns a vector whose elemets are evaluated at certain values\
+\n  (Information): displays some basic information about the vector"
 		offset2 = 60
 		self.canvas.create_text(self.margin, self.margin+offset2, anchor="nw",
-			text=vectorHelpText)
+			text=generalHelpText)
+		self.canvas.create_text(self.margin, self.canvasHeight/2.4, 
+			anchor="nw", text=commandText)
+		self.canvas.create_text(self.margin, self.canvasHeight*(2/3.0),
+			anchor="nw", text=menuDescription)
 
 	def polynomialHelp(self):
 		offset1 = 5
 		self.canvas.create_text(self.canvasWidth/2.0, self.margin+offset1,
 			anchor="n", text="Polynomial Help", font="Arial 15 bold")
-		polyHelpText = readFile("assets"+os.sep+"polyHelp.txt")
+		generalHelpText = "Press 'P' to create a polynomial.\
+\nThis app supports trigonometric functions, as well as natural logs.\
+\nWhen creating a polynomial, please use the following symbols:\
+\n\t(**):power, (*):multiply, (/):divide, \n\t(+):add, (-):subtract, \
+(x, y, z):variables"
+		commandText = "Workspace Commands:\
+\n (*): polynomial multiplication\
+\n (/): polynomial division\
+\n (+): polynomial addition\
+\n (-): polynomial subtraction"
+		menuDescription = "Menu Commands:\
+\n (Gradient): returns a vector whose elements are the partial derivatives \
+of the function\
+\n (Derivative): returns the derivative of a function with respect to a \
+variable\
+\n (Graph): graphs a plot of the function\
+\n (Evaluate): returns the function, evaluated a the given values\
+\n (Information): displays some basic information about the polynomial"
 		offset2 = 60
 		self.canvas.create_text(self.margin, self.margin+offset2, anchor="nw",
-			text=polyHelpText)
+			text=generalHelpText)
+		self.canvas.create_text(self.margin, self.canvasHeight/2.3, anchor="nw",
+			text=commandText)
+		self.canvas.create_text(self.margin, self.canvasHeight*(2/3.0),
+			anchor="nw", text=menuDescription)
 
 	def redrawAll(self):
 		self.drawGradient("vert", 0, 0, self.canvasWidth, self.margin)
@@ -778,6 +733,5 @@ class VPWorkspaceWindow(EventBasedAnimationClass):
 		elif(self.mode == "start"):
 			self.drawStaticStartScreen()
 
-if (__name__ == "__main__"):
-	window = VPWorkspaceWindow()
-	window.run()
+demo = VPWorkspaceWindow()
+demo.run()

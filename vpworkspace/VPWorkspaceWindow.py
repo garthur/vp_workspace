@@ -713,7 +713,8 @@ class VPWorkspaceWindow(EventBasedAnimationClass):
 		timeToLoad = 2.5
 		timeIncrement = 0.001
 		timeRatio = 0
-		timingThread = threading.Thread(target = tests.vectorClassTest.runFullTests)
+		def sleep(): time.sleep(5)
+		timingThread = threading.Thread(target = sleep)
 		timingThread.start()
 		while (timingThread.is_alive()):
 			self.root.update()
